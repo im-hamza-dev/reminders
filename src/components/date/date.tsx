@@ -1,19 +1,34 @@
-import React from "react";
-import { io } from "socket.io-client";
-const Date = () => {
-  const [time, setTime] = React.useState("fetching");
-  React.useEffect(() => {
-    const socket = io("http://localhost:5001");
-    socket.on("connect", () => console.log(socket.id));
-    socket.on("connect_error", () => {
-      setTimeout(() => socket.connect(), 5001);
-    });
-    socket.on("time", (data) => {
-      console.log("Data receiving: ", data);
-      setTime(data);
-    });
-    socket.on("disconnect", () => setTime("server disconnected"));
+import React, { useState, useEffect } from "react";
+import { socket } from "../../socket";
+
+export default function Date() {
+  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [time, setTime] = useState(null);
+
+  useEffect(() => {
+    function onConnect() {
+      setIsConnected(true);
+    }
+
+    function onDisconnect() {
+      setIsConnected(false);
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("time", (data) => setTime(data));
+
+    socket.on("disconnect", onDisconnect);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+    };
   }, []);
-  return <div className="App">{time}</div>;
-};
-export default Date;
+
+  return (
+    <>
+      <div className="App">{isConnected ? "connected" : "not connected"}</div>
+      <div className="App">{time}</div>
+    </>
+  );
+}
